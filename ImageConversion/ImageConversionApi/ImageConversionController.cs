@@ -136,7 +136,7 @@ namespace ImageConversionApi
                 {
                     image.SelectActiveFrame(frameDimension, pageNumber);
                     using var bmp = new Bitmap(image);
-                    var jpegPath = Path.Combine(inputFilePath, Path.GetFileNameWithoutExtension(file.FileName), $"{pageNumber}.jpg");
+                    var jpegPath = Path.Combine(inputFilePath, $"{Path.GetFileNameWithoutExtension(file.FileName)}-{pageNumber}.jpg");
                     jpegPaths.Add(jpegPath);
                     bmp.Save(jpegPath, ImageFormat.Jpeg);
                 }
