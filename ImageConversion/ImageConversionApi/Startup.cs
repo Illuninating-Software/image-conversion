@@ -50,6 +50,8 @@ namespace ImageConversionApi
                 });
                 options.IncludeXmlComments($@"{AppDomain.CurrentDomain.BaseDirectory}ImageConversionApi.xml");
             });
+
+            services.AddSingleton(Configuration.GetSection("GhostScriptConfig").Get<GhostScriptConfig>());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

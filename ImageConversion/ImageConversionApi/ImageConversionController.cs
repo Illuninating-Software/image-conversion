@@ -17,10 +17,12 @@ namespace ImageConversionApi
     public class ImageConversionController : ControllerBase
     {
         private readonly ILogger<ImageConversionController> _logger;
+        private readonly GhostScriptConfig _config;
 
-        public ImageConversionController(ILogger<ImageConversionController> logger)
+        public ImageConversionController(ILogger<ImageConversionController> logger, GhostScriptConfig config)
         {
             _logger = logger;
+            _config = config;
         }
 
         /// <summary>
@@ -28,11 +30,12 @@ namespace ImageConversionApi
         /// </summary>
         /// <returns></returns>
         [HttpPost("image/tiff-to-pdf")]
+        [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
         [DisableRequestSizeLimit]
         public IActionResult ConvertPdfToJpegs(IFormFile file)
         {
             var guid = Guid.NewGuid();
-            var tempFolderPath = @$"C:\temp\tempImageFiles\{guid}\";
+            var tempFolderPath = Path.Combine(_config.TempImageFolder, guid.ToString());
             try
             {
                 if ((file?.Length ?? 0) == 0)
@@ -40,7 +43,7 @@ namespace ImageConversionApi
                     return BadRequest("No file was uploaded or the file had no content.");
                 }
 
-                var inputFilePath = @$"{tempFolderPath}input";//Path.Combine(@$"{tempFolderPath}input", file.FileName);
+                var inputFilePath = Path.Combine(tempFolderPath, "input");
 
 
                 var jpegPaths = ConvertTiffToJpegs(file, inputFilePath);
@@ -50,19 +53,17 @@ namespace ImageConversionApi
                 //     return BadRequest("Virus detected in uploaded file.");
                 // }
 
-                var ghostscriptPath = @"C:\Program Files (x86)\gs\gs9.06\bin\gswin32c.exe";
-                var outputFolder = $@"{tempFolderPath}output";
+                var outputFolder = Path.Combine(tempFolderPath, "output");
                 var outputFilePath = Path.Combine(outputFolder, Path.ChangeExtension(file.FileName, "pdf"));
-                var pathToJpegConverter = @"C:\Program Files (x86)\gs\gs9.06\lib\viewjpeg.ps";
 
                 var cmd =
-                    $"-dNOPAUSE -q -sDEVICE=pdfwrite -r500 -dBATCH -sOutputFile=\"{outputFilePath}\" \"{pathToJpegConverter}\" -c \"{BuildPdfFromJpegPageCommand(jpegPaths)}\"";
+                    $"-dNOPAUSE -q -sDEVICE=pdfwrite -r500 -dBATCH -sOutputFile=\"{outputFilePath}\" \"{_config.JpegImageConverterPath}\" -c \"{BuildPdfFromJpegPageCommand(jpegPaths)}\"";
 
                 var myProcess = new Process
                 {
                     StartInfo =
                     {
-                        FileName = ghostscriptPath, Arguments = cmd, WindowStyle = ProcessWindowStyle.Hidden,
+                        FileName = _config.GhostScriptExePath, Arguments = cmd, WindowStyle = ProcessWindowStyle.Hidden,
                         RedirectStandardError = true
                     }
                 };
@@ -118,7 +119,6 @@ namespace ImageConversionApi
         /// Converts a tiff to jpegs, returns the file names of the created files.
         /// </summary>
         /// <param name="file"></param>
-        /// <param name="scanFileStream"></param>
         /// <param name="inputFilePath"></param>
         /// <returns></returns>
         private static List<string> ConvertTiffToJpegs(IFormFile file, string inputFilePath)
@@ -136,7 +136,7 @@ namespace ImageConversionApi
                 {
                     image.SelectActiveFrame(frameDimension, pageNumber);
                     using var bmp = new Bitmap(image);
-                    var jpegPath = @$"{inputFilePath}\{Path.GetFileNameWithoutExtension(file.FileName)}{pageNumber}.jpg";
+                    var jpegPath = Path.Combine(inputFilePath, Path.GetFileNameWithoutExtension(file.FileName), $"{pageNumber}.jpg");
                     jpegPaths.Add(jpegPath);
                     bmp.Save(jpegPath, ImageFormat.Jpeg);
                 }
@@ -147,7 +147,7 @@ namespace ImageConversionApi
 
 
         [HttpPost("image/pdf-to-tiff")]
-        public ActionResult<FileStreamResult> ConvertPdfToTiff(IFormFile file)
+        public IActionResult ConvertPdfToTiff(IFormFile file)
         {
             var inputFilePath = string.Empty;
             var outputFilePath = string.Empty;
@@ -169,7 +169,7 @@ namespace ImageConversionApi
 
                 var guid = Guid.NewGuid();
 
-                inputFilePath = Path.Combine(@"C:\temp\tempImageFiles", $"{guid}.pdf");
+                inputFilePath = Path.Combine(_config.TempImageFolder, $"{guid}.pdf");
 
                 using var inputFileStream = new FileStream(inputFilePath, FileMode.Create);
                 file.CopyTo(inputFileStream);
@@ -179,8 +179,7 @@ namespace ImageConversionApi
                 //     return BadRequest("Virus detected in uploaded file.");
                 // }
 
-                var ghostscriptPath = @"C:\Program Files (x86)\gs\gs9.06\bin\gswin32c.exe";
-                outputFilePath = Path.Combine(@"C:\temp\tempImageFiles", $"{guid}.tiff");
+                outputFilePath = Path.Combine(_config.TempImageFolder, $"{guid}.tiff");
 
                 var cmd =
                     $"-dNOPAUSE -q -sDEVICE=tiff24nc -r500 -dBATCH -sOutputFile=\"{outputFilePath}\" \"{inputFilePath}\"";
@@ -189,7 +188,7 @@ namespace ImageConversionApi
                 {
                     StartInfo =
                     {
-                        FileName = ghostscriptPath, Arguments = cmd, WindowStyle = ProcessWindowStyle.Hidden,
+                        FileName = _config.GhostScriptExePath, Arguments = cmd, WindowStyle = ProcessWindowStyle.Hidden,
                         RedirectStandardError = true
                     }
                 };
