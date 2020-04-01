@@ -170,6 +170,10 @@ namespace ImageConversionApi
                 var guid = Guid.NewGuid();
 
                 inputFilePath = Path.Combine(_config.TempImageFolder, $"{guid}.pdf");
+                if (!Directory.Exists(_config.TempImageFolder))
+                {
+                    Directory.CreateDirectory(_config.TempImageFolder);
+                }
 
                 using var inputFileStream = new FileStream(inputFilePath, FileMode.Create);
                 file.CopyTo(inputFileStream);
