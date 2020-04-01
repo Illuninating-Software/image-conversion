@@ -23,6 +23,10 @@ namespace ImageConversionApi
         {
             _logger = logger;
             _config = config;
+            if (!Directory.Exists(config.TempImageFolder))
+            {
+                Directory.CreateDirectory(config.TempImageFolder);
+            }
         }
 
         /// <summary>
