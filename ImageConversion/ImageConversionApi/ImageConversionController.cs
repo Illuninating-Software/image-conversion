@@ -32,7 +32,7 @@ namespace ImageConversionApi
         [HttpPost("image/tiff-to-pdf")]
         [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
         [DisableRequestSizeLimit]
-        public IActionResult ConvertPdfToJpegs(IFormFile file)
+        public IActionResult ConvertTiffToPdf(IFormFile file)
         {
             var guid = Guid.NewGuid();
             var tempFolderPath = Path.Combine(_config.TempImageFolder, guid.ToString());
