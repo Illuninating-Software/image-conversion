@@ -111,7 +111,7 @@ namespace ImageConversionApi
                 stringBuilder.Append($"({inputFileName}) viewJPEG showpage ");
             }
 
-            return stringBuilder.ToString().Replace(@"\", @"//");
+            return stringBuilder.ToString().Replace(@"\", @"//"); //Change the file separators to work inside the ghostscript arguments.
         }
 
         /// <summary>
